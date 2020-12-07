@@ -346,7 +346,7 @@ class NeuralNetwork:
         self.w[index] -= self.learning_rate * dw
         self.b[index] -= self.learning_rate * db
 
-    def feedforward(self, j):
+    def feedforward(self, X_train, y_train, j):
 
         global cost
         self.z = {}
@@ -415,8 +415,8 @@ class NeuralNetwork:
 
         return update_params
 
-    def propogation(self, i):
-        self.z, self.a, self.output, self.loss = self.feedforward(i)
+    def propogation(self, X_train, y_train, i):
+        self.z, self.a, self.output, self.loss = self.feedforward(X_train, y_train, i)
         self.update_params = self.backpropogation()
         return self.z, self.a, self.output, self.loss, self.update_params
 
@@ -435,7 +435,7 @@ class NeuralNetwork:
         for i in range(self.epochs):
 
             self.currentepoch = i
-            self.z, self.a, self.output, self.loss, self.update_params = self.propogation(i)
+            self.z, self.a, self.output, self.loss, self.update_params = self.propogation(X_train, y_train, i)
 
             if self.cost == 'CategoricalCrossEntropy':
                 probablity = self.output.T
@@ -640,7 +640,7 @@ if __name__ == '__main__':
     model.complile(loss='CategoricalCrossEntropy', initialization='He', optimizer='GD')
 
     start = timeit.default_timer()
-    model.fit(X_train, y_train, lr=0.01, momemtum=0.8, decay=0.0, epochs=100)
+    model.fit(X_train, y_train, lr=0.01, momemtum=0.8, decay=0.0, epochs=500)
     stop = timeit.default_timer()
 
     y_predicted = model.predict(X_test)
