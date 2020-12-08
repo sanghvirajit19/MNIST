@@ -207,7 +207,7 @@ class NeuralNetwork:
         self.initialization = initialization
         self.optimizer = optimizer
 
-    def Accuracy(self, y_true, y_predicted, cost):
+    def acc(self, y_true, y_predicted, cost):
         if cost == 'BinaryCrossEntropy':
             accuracy = np.mean(np.equal(y_true, np.round(y_predicted))) * 100
         else:
@@ -223,7 +223,7 @@ class NeuralNetwork:
 
         return lrate
 
-    def TimeBasedDecay(self):
+    def time_based_decay(self):
         self.learning_rate *= (1.0 / (1.0 + self.decay * self.currentepoch))
 
         if self.learning_rate <= 0.001:
@@ -341,6 +341,11 @@ class NeuralNetwork:
         plt.show()
         fig1.savefig('backpropogation_mean.png')
 
+    def GDScheduler(self, lr, momemtum, decay):
+        self.learning_rate = lr
+        self.momemtum = momemtum
+        self.decay = decay
+
     def GD(self, index, dw, db):
 
         self.w[index] -= self.learning_rate * dw
@@ -420,16 +425,12 @@ class NeuralNetwork:
         self.update_params = self.backpropogation()
         return self.z, self.a, self.output, self.loss, self.update_params
 
-    def fit(self, X_train, y_train, batch_size, lr, momemtum, decay, epochs):
+    def fit(self, X_train, y_train, batch_size, epochs):
 
         self.input = X_train
         self.y = y_train
         self.m = X_train.shape[1]
-
-        self.learning_rate = lr
-        self.momemtum = momemtum
         self.epochs = epochs
-        self.decay = decay
 
         print("Training........")
         for i in range(self.epochs):
@@ -449,9 +450,9 @@ class NeuralNetwork:
                     y_predicted[np.arange(len(probablity)), probablity.argmax(1)] = 1
                     y_trues = self.y.T
 
-                    self.accuracy = self.Accuracy(y_trues, y_predicted, self.cost)
+                    self.accuracy = self.acc(y_trues, y_predicted, self.cost)
                 else:
-                    self.accuracy = self.Accuracy(self.y, self.output, self.cost)
+                    self.accuracy = self.acc(self.y, self.output, self.cost)
 
             end = timeit.default_timer()
             print("epochs:" + str(i) + " | "
@@ -646,6 +647,7 @@ if __name__ == '__main__':
     model.add_layer(10, activation='softmax')
 
     model.complile(loss='CategoricalCrossEntropy', initialization='He', optimizer='GD')
+    model.GDScheduler(lr=1, momemtum=0.8, decay=1e-03)
 
     start = timeit.default_timer()
     model.fit(X_train, y_train, lr=0.01, momemtum=0.8, decay=0.0, epochs=500)
