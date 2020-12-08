@@ -420,7 +420,7 @@ class NeuralNetwork:
         self.update_params = self.backpropogation()
         return self.z, self.a, self.output, self.loss, self.update_params
 
-    def fit(self, X_train, y_train, lr, momemtum, decay, epochs):
+    def fit(self, X_train, y_train, batch_size, lr, momemtum, decay, epochs):
 
         self.input = X_train
         self.y = y_train
@@ -435,21 +435,29 @@ class NeuralNetwork:
         for i in range(self.epochs):
 
             self.currentepoch = i
-            self.z, self.a, self.output, self.loss, self.update_params = self.propogation(X_train, y_train, i)
 
-            if self.cost == 'CategoricalCrossEntropy':
-                probablity = self.output.T
-                y_predicted = np.zeros_like(probablity)
-                y_predicted[np.arange(len(probablity)), probablity.argmax(1)] = 1
-                y_trues = self.y.T
+            start = timeit.default_timer()
 
-                self.accuracy = self.Accuracy(y_trues, y_predicted, self.cost)
-            else:
-                self.accuracy = self.Accuracy(self.y, self.output, self.cost)
+            for j in range(self.input.shape[1] // batch_size):
+                k = j * batch_size
+                l = (j + 1) * batch_size
+                self.z, self.a, self.output, self.loss, self.update_params = self.propogation(X_train[k:l], y_train[k:l], i)
 
+                if self.cost == 'CategoricalCrossEntropy':
+                    probablity = self.output.T
+                    y_predicted = np.zeros_like(probablity)
+                    y_predicted[np.arange(len(probablity)), probablity.argmax(1)] = 1
+                    y_trues = self.y.T
+
+                    self.accuracy = self.Accuracy(y_trues, y_predicted, self.cost)
+                else:
+                    self.accuracy = self.Accuracy(self.y, self.output, self.cost)
+
+            end = timeit.default_timer()
             print("epochs:" + str(i) + " | "
-                                       "Loss:" + str(self.loss) + " | "
-                                                                  "Accuracy: {} %".format(self.accuracy))
+                  "runtime: {} s".format(float(round(end-start, 3))) + " | "
+                  "Loss:" + str(self.loss) + " | "
+                  "Accuracy: {} %".format(float(round(self.accuracy, 3))))
 
             if i % 2 == 0:
                 self.accuracy_values.append(self.accuracy)
