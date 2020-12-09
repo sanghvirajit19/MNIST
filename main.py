@@ -83,21 +83,27 @@ class Initialization:
 
         w = {}
         sdw = {}
+        vdw = {}
 
         w[1] = np.zeros((input.shape[0], model.get_neurons(1)))
         sdw[1] = np.zeros((input.shape[0], model.get_neurons(1)))
+        vdw[1] = np.zeros((input.shape[0], model.get_neurons(1)))
 
         for i in range(layers - 1):
             w[i + 2] = np.zeros((model.get_neurons(i + 1), model.get_neurons(i + 2)))
+            sdw[i + 2] = np.zeros((input.shape[0], model.get_neurons(1)))
+            vdw[i + 2] = np.zeros((input.shape[0], model.get_neurons(1)))
 
         b = {}
         sdb = {}
+        vdb = {}
 
         for i in range(layers):
             b[i + 1] = np.zeros((model.get_neurons(i + 1), 1))
             sdb[i + 1] = np.zeros((model.get_neurons(i + 1), 1))
+            vdb[i + 1] = np.zeros((model.get_neurons(i + 1), 1))
 
-        return w, b, sdw, sdb
+        return w, b, sdw, sdb, vdw, vdb
 
     @staticmethod
     def Xavier(X_train, layers):
@@ -106,24 +112,29 @@ class Initialization:
 
         w = {}
         sdw = {}
+        vdw = {}
 
         w[1] = np.random.randn(input.shape[0], model.get_neurons(1)) * np.sqrt(1 / input.shape[0] )
         sdw[1] = np.zeros((input.shape[0], model.get_neurons(1)))
+        vdw[1] = np.zeros((input.shape[0], model.get_neurons(1)))
 
         for i in range(layers - 1):
             w[i + 2] = np.random.randn(model.get_neurons(i + 1), model.get_neurons(i + 2)) * np.sqrt(
                 1 / model.get_neurons(i + 1))
 
             sdw[i + 2] = np.zeros((model.get_neurons(i + 1), model.get_neurons(i + 2)))
+            vdw[i + 2] = np.zeros((model.get_neurons(i + 1), model.get_neurons(i + 2)))
 
         b = {}
         sdb = {}
+        vdb = {}
 
         for i in range(layers):
             b[i + 1] = np.zeros((model.get_neurons(i + 1), 1))
             sdb[i + 1] = np.zeros((model.get_neurons(i + 1), 1))
+            vdb[i + 1] = np.zeros((model.get_neurons(i + 1), 1))
 
-        return w, b, sdw, sdb
+        return w, b, sdw, sdb, vdw, vdb
 
     @staticmethod
     def He(X_train, layers):
@@ -132,24 +143,29 @@ class Initialization:
 
         w = {}
         sdw = {}
+        vdw = {}
 
         w[1] = np.random.randn(input.shape[0], model.get_neurons(1)) * np.sqrt(2 / input.shape[0])
         sdw[1] = np.zeros((input.shape[0], model.get_neurons(1)))
+        vdw[1] = np.zeros((input.shape[0], model.get_neurons(1)))
 
         for i in range(layers - 1):
             w[i + 2] = np.random.randn(model.get_neurons(i + 1), model.get_neurons(i + 2)) * np.sqrt(
                 2 / model.get_neurons(i + 1))
 
             sdw[i + 2] = np.zeros((model.get_neurons(i + 1), model.get_neurons(i + 2)))
+            vdw[i + 2] = np.zeros((model.get_neurons(i + 1), model.get_neurons(i + 2)))
 
         b = {}
         sdb = {}
+        vdb = {}
 
         for i in range(layers):
             b[i + 1] = np.zeros((model.get_neurons(i + 1), 1))
             sdb[i + 1] = np.zeros((model.get_neurons(i + 1), 1))
+            vdb[i + 1] = np.zeros((model.get_neurons(i + 1), 1))
 
-        return w, b, sdw, sdb
+        return w, b, sdw, sdb, vdw, vdb
 
     @staticmethod
     def Kumar(X_train, layers):
@@ -158,24 +174,29 @@ class Initialization:
 
         w = {}
         sdw = {}
+        vdw = {}
 
         w[1] = np.random.randn(input.shape[0], model.get_neurons(1)) * np.sqrt(12.96 / input.shape[0])
         sdw[1] = np.zeros((input.shape[0], model.get_neurons(1)))
+        vdw[1] = np.zeros((input.shape[0], model.get_neurons(1)))
 
         for i in range(layers - 1):
             w[i + 2] = np.random.randn(model.get_neurons(i + 1), model.get_neurons(i + 2)) * np.sqrt(
                 12.96 / model.get_neurons(i + 1))
 
             sdw[i + 2] = np.zeros((model.get_neurons(i + 1), model.get_neurons(i + 2)))
+            vdw[i + 2] = np.zeros((model.get_neurons(i + 1), model.get_neurons(i + 2)))
 
         b = {}
         sdb = {}
+        vdb = {}
 
         for i in range(layers):
             b[i + 1] = np.zeros((model.get_neurons(i + 1), 1))
             sdb[i + 1] = np.zeros((model.get_neurons(i + 1), 1))
+            vdb[i + 1] = np.zeros((model.get_neurons(i + 1), 1))
 
-        return w, b, sdw, sdb
+        return w, b, sdw, sdb, vdw, vdb
 
 class Learning_Rate_Schedules():
 
@@ -397,6 +418,29 @@ class NeuralNetwork:
         self.w[index] -= (self.learning_rate / (np.sqrt(self.sdw[index]+1e-08))) * dw
         self.b[index] -= (self.learning_rate / (np.sqrt(self.sdb[index]+1e-08))) * db
 
+    def Adam(self, index, gamma1, gamma2, dw, db):
+
+        vdw_corr = {}
+        vdb_corr = {}
+
+        sdw_corr = {}
+        sdb_corr = {}
+
+        self.vdw[index] = gamma1 * self.vdw[index] + (1 - gamma1) * dw
+        self.vdb[index] = gamma1 * self.vdb[index] + (1 - gamma1) * db
+
+        self.sdw[index] = gamma2 * self.sdw[index] + (1 - gamma2) * dw**2
+        self.sdb[index] = gamma2 * self.sdb[index] + (1 - gamma2) * db**2
+
+        vdw_corr[index] = self.vdw[index] / (1 - np.power(gamma1, self.currentepoch+1))
+        vdb_corr[index] = self.vdb[index] / (1 - np.power(gamma1, self.currentepoch+1))
+
+        sdw_corr[index] = self.sdw[index] / (1 - np.power(gamma2, self.currentepoch+1))
+        sdb_corr[index] = self.sdb[index] / (1 - np.power(gamma2, self.currentepoch+1))
+
+        self.w[index] -= (self.learning_rate / (np.sqrt(sdw_corr[index]+1e-08))) * vdw_corr[index]
+        self.b[index] -= (self.learning_rate / (np.sqrt(sdb_corr[index]+1e-08))) * vdb_corr[index]
+
     def feedforward(self, X_train, y_train, j):
 
         global cost
@@ -408,13 +452,13 @@ class NeuralNetwork:
         # Initialize parameters
         if j == 0:
             if self.initialization == 'Xavier':
-                self.w, self.b, self.sdw, self.sdb = Initialization.Xavier(self.input, self.layers)
+                self.w, self.b, self.sdw, self.sdb, self.vdw, self.vdb = Initialization.Xavier(self.input, self.layers)
             elif self.initialization == 'He':
-                self.w, self.b, self.sdw, self.sdb = Initialization.He(self.input, self.layers)
+                self.w, self.b, self.sdw, self.sdb, self.vdw, self.vdb = Initialization.He(self.input, self.layers)
             elif self.initialization == 'Kumar':
-                self.w, self.b, self.sdw, self.sdb = Initialization.Kumar(self.input, self.layers)
+                self.w, self.b, self.sdw, self.sdb, self.vdw, self.vdb = Initialization.Kumar(self.input, self.layers)
             else:
-                self.w, self.b, self.sdw, self.sdb = Initialization.Zeros(self.input, self.layers)
+                self.w, self.b, self.sdw, self.sdb, self.vdw, self.vdb = Initialization.Zeros(self.input, self.layers)
 
         # CostFunction
         if self.cost == 'BinaryCrossEntropy':
@@ -465,6 +509,10 @@ class NeuralNetwork:
         if self.optimizer == 'RMSprop':
             for i, j in update_params.items():
                 self.RMSprop(i, 0.9, j[0], j[1])
+
+        if self.optimizer == 'Adam':
+            for i, j in update_params.items():
+                self.Adam(i, 0.9, 0.999, j[0], j[1])
 
         return update_params
 
@@ -706,8 +754,8 @@ if __name__ == '__main__':
     model.add_layer(50, activation='relu')
     model.add_layer(10, activation='softmax')
 
-    model.complile(loss='CategoricalCrossEntropy', initialization='He', optimizer='RMSprop')
-    model.GDScheduler(lr=0.001, momemtum=0.8, decay=0)
+    model.complile(loss='CategoricalCrossEntropy', initialization='He', optimizer='Adam')
+    model.GDScheduler(lr=0.001)
 
     start = timeit.default_timer()
     model.fit(X_train, y_train, batch_size=10000, epochs=10)
