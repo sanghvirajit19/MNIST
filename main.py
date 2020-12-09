@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn import metrics
 import seaborn as sn
 import math
 from scipy.stats import norm
@@ -153,6 +152,28 @@ class Initialization:
 
         return w, b
 
+class Learning_Rate_Schedules():
+
+    @staticmethod
+    def exp_decay(learning_rate, decay, currentepoch):
+
+        lrate = learning_rate * math.exp(-decay * currentepoch)
+
+        if lrate <= 0.001:
+            lrate = 0.001
+
+        return lrate
+
+    @staticmethod
+    def time_based_decay(learning_rate, decay, currentepoch):
+
+        learning_rate *= (1.0 / (1.0 + decay * currentepoch))
+
+        if learning_rate <= 0.001:
+            learning_rate = 0.001
+
+        return learning_rate
+
 def str_to_class(str):
     return getattr(sys.modules[__name__], str)
 
@@ -213,23 +234,6 @@ class NeuralNetwork:
         else:
             accuracy = np.mean(np.equal(np.argmax(y_true, axis=-1), np.argmax(y_predicted, axis=-1))) * 100
         return accuracy
-
-    def exp_decay(self):
-
-        lrate = self.learning_rate * math.exp(-self.decay * self.currentepoch)
-
-        if lrate <= 0.001:
-            lrate = 0.001
-
-        return lrate
-
-    def time_based_decay(self):
-        self.learning_rate *= (1.0 / (1.0 + self.decay * self.currentepoch))
-
-        if self.learning_rate <= 0.001:
-            self.learning_rate = 0.001
-
-        return self.learning_rate
 
     def activation_mean(self):
 
@@ -341,10 +345,19 @@ class NeuralNetwork:
         plt.show()
         fig1.savefig('backpropogation_mean.png')
 
-    def GDScheduler(self, lr, momemtum, decay):
+    def GDScheduler(self, lr, momemtum=None, decay=None, method=None):
         self.learning_rate = lr
-        self.momemtum = momemtum
         self.decay = decay
+        self.momemtum = momemtum
+
+        if method == None:
+            self.decaymethod = 'None'
+
+        if method == 'exponential':
+            self.decaymethod = 'exp_decay'
+
+        if method == 'timebased':
+            self.decaymethod = 'time_based_decay'
 
     def GD(self, index, dw, db):
 
@@ -411,8 +424,6 @@ class NeuralNetwork:
             # Storing gradient mean values
             self.gradientMean[i - 1].append(abs(dw.mean()))
 
-        self.learning_rate = self.exp_decay()
-
         # Optimizer
         if self.optimizer == 'GD':
             for i, j in update_params.items():
@@ -437,6 +448,17 @@ class NeuralNetwork:
 
             self.currentepoch = i
 
+            if self.decaymethod == 'None':
+                pass
+
+            if self.decaymethod == 'exp_decay':
+                self.learning_rate = Learning_Rate_Schedules.exp_decay(self.learning_rate, self.decay,
+                                                                       self.currentepoch)
+
+            if self.decaymethod == 'time_based_decay':
+                self.learning_rate = Learning_Rate_Schedules.time_based_decay(self.learning_rate, self.decay,
+                                                                              self.currentepoch)
+
             start = timeit.default_timer()
 
             for j in range(self.input.shape[1] // batch_size):
@@ -455,6 +477,7 @@ class NeuralNetwork:
                     self.accuracy = self.acc(self.y, self.output, self.cost)
 
             end = timeit.default_timer()
+
             print("epochs:" + str(i) + " | "
                   "runtime: {} s".format(float(round(end-start, 3))) + " | "
                   "Loss:" + str(self.loss) + " | "
@@ -647,10 +670,10 @@ if __name__ == '__main__':
     model.add_layer(10, activation='softmax')
 
     model.complile(loss='CategoricalCrossEntropy', initialization='He', optimizer='GD')
-    model.GDScheduler(lr=1, momemtum=0.8, decay=1e-03)
+    model.GDScheduler(lr=0.1, momemtum=0.8, decay=1e-03, method='exponential')
 
     start = timeit.default_timer()
-    model.fit(X_train, y_train, lr=0.01, momemtum=0.8, decay=0.0, epochs=500)
+    model.fit(X_train, y_train, batch_size=20000, epochs=30)
     stop = timeit.default_timer()
 
     y_predicted = model.predict(X_test)
