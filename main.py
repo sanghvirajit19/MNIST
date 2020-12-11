@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sn
 import math
@@ -31,10 +32,10 @@ class sigmoid:
         y = 1 / (1 + np.exp(-x))
         return y
 
-    #@staticmethod
-    #def prime(x):
-    #    y = sigmoid.activation(x) * (1 - sigmoid.activation(x))
-    #    return y
+    @staticmethod
+    def prime(x):
+        y = sigmoid.activation(x) * (1 - sigmoid.activation(x))
+        return y
 
 class relu:
     @staticmethod
@@ -441,6 +442,23 @@ class NeuralNetwork:
         self.w[index] -= (self.learning_rate / (np.sqrt(sdw_corr[index]+1e-08))) * vdw_corr[index]
         self.b[index] -= (self.learning_rate / (np.sqrt(sdb_corr[index]+1e-08))) * vdb_corr[index]
 
+    def Adamax(self, index, gamma1, gamma2, dw, db):
+
+        vdw_corr = {}
+        vdb_corr = {}
+
+        self.vdw[index] = gamma1 * self.vdw[index] + (1 - gamma1) * dw
+        self.vdb[index] = gamma1 * self.vdb[index] + (1 - gamma1) * db
+
+        self.sdw[index] = np.maximum(gamma2 * self.sdw[index], np.abs(dw))
+        self.sdb[index] = np.maximum(gamma2 * self.sdb[index], np.abs(db))
+
+        vdw_corr[index] = self.vdw[index] / (1 - np.power(gamma1, self.currentepoch+1))
+        vdb_corr[index] = self.vdb[index] / (1 - np.power(gamma1, self.currentepoch+1))
+
+        self.w[index] -= (self.learning_rate / (np.sqrt(self.sdw[index]+1e-08))) * vdw_corr[index]
+        self.b[index] -= (self.learning_rate / (np.sqrt(self.sdb[index]+1e-08))) * vdb_corr[index]
+
     def feedforward(self, X_train, y_train, j):
 
         global cost
@@ -514,6 +532,10 @@ class NeuralNetwork:
             for i, j in update_params.items():
                 self.Adam(i, 0.9, 0.999, j[0], j[1])
 
+        if self.optimizer == 'Adamax':
+            for i, j in update_params.items():
+                self.Adamax(i, 0.9, 0.999, j[0], j[1])
+
         return update_params
 
     def propogation(self, X_train, y_train, i):
@@ -551,6 +573,7 @@ class NeuralNetwork:
                 l = (j + 1) * batch_size
                 self.z, self.a, self.output, self.loss, self.update_params = self.propogation(X_train[k:l], y_train[k:l], i)
 
+
                 if self.cost == 'CategoricalCrossEntropy':
                     probablity = self.output.T
                     y_predicted = np.zeros_like(probablity)
@@ -568,7 +591,7 @@ class NeuralNetwork:
                   "Loss:" + str(self.loss) + " | "
                   "Accuracy: {} %".format(float(round(self.accuracy, 3))))
 
-            if i % 2 == 0:
+            if i % 1 == 0:
                 self.accuracy_values.append(self.accuracy)
                 self.Loss_list.append(self.loss)
                 self.epochs_list.append(i)
@@ -584,6 +607,16 @@ class NeuralNetwork:
         Loss_array = np.array(self.Loss_list)
         y_loss = Loss_array.reshape(-1, 1)
         x_epochs = np.array(self.epochs_list).reshape(-1, 1)
+
+        accuracy_data = pd.DataFrame()
+        accuracy_data['0'] = x_epochs.reshape(1, -1)[0]
+        accuracy_data['1'] = accuracy_list.reshape(1, -1)[0]
+        accuracy_data.to_csv('accuracy.txt', index=False, header=False, sep=" ")
+
+        loss_data = pd.DataFrame()
+        loss_data['0'] = x_epochs.reshape(1, -1)[0]
+        loss_data['1'] = y_loss.reshape(1, -1)[0]
+        loss_data.to_csv('cost.txt', index=False, header=False, sep=" ")
 
         plt.figure(figsize=(10, 5))
 
@@ -754,7 +787,7 @@ if __name__ == '__main__':
     model.add_layer(50, activation='relu')
     model.add_layer(10, activation='softmax')
 
-    model.complile(loss='CategoricalCrossEntropy', initialization='He', optimizer='Adam')
+    model.complile(loss='CategoricalCrossEntropy', initialization='He', optimizer='Adamax')
     model.GDScheduler(lr=0.001)
 
     start = timeit.default_timer()
